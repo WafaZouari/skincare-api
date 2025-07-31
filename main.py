@@ -7,10 +7,16 @@ from vector import retriever
 
 app = FastAPI()
 
-# Allow frontend to fetch from API
+# Configure CORS to allow your frontend URL only
+origins = [
+    "http://localhost:3000",  # your Next.js local dev URL
+    # add your deployed frontend URL here as well, e.g.
+    # "https://your-frontend-domain.com",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # You can replace with your frontend domain
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -4,3 +4,6 @@ langchain-chroma
 pandas
 streamlit
 openpyxl
+fastapi
+uvicorn
+ollama

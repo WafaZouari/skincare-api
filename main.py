@@ -1,14 +1,27 @@
-import time
-import streamlit as st
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from langchain_ollama.llms import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
-from vector import retriever  # Make sure this uses your Excel data
+from vector import retriever
 
-# Langchain model setup
+app = FastAPI()
+
+# Allow frontend to fetch from API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can replace with your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class SkincareQuery(BaseModel):
+    skin_concern: str
+    question: str
+
 model = OllamaLLM(model="llama3.2")
-
-# Prompt template
-template = """
+prompt = ChatPromptTemplate.from_template("""
 You are a skincare advisor who only recommends products available with delivery to Tunisia.
 
 Skin concern: {skin_concern}
@@ -25,31 +38,15 @@ Your task:
 - Propose a complete routine if useful (morning/evening).
 - Highlight the best price-quality ratio products.
 - Be clear, concise, and avoid recommending unavailable products.
-"""
-
-prompt = ChatPromptTemplate.from_template(template)
+""")
 chain = prompt | model
 
-# Streamlit interface
-st.set_page_config(page_title="Tunisian Skincare Advisor", page_icon="💆‍♀️")
-
-st.title("💆‍♀️ Personalized Skincare Advisor")
-st.markdown("Enter your skin concern and ask your skincare question. I'll recommend the best products available in **Tunisia** 🇹🇳.")
-
-with st.form("skin_form"):
-    user_concern = st.text_input("🧴 What skin issues are you facing? (e.g., acne, dryness, redness, dullness)")
-    question = st.text_area("❓ Ask your skincare question")
-    submitted = st.form_submit_button("💡 Get Recommendation")
-
-if submitted and user_concern and question:
-    with st.spinner("Analyzing your skin needs..."):
-        reviews = retriever.invoke(user_concern)
-
-        result = chain.invoke({
-            "skin_concern": user_concern,
-            "products_table": reviews,
-            "question": question
-        })
-
-    st.success("Here’s what I recommend for you:")
-    st.markdown(f"```markdown\n{result}\n```")
+@app.post("/ask")
+async def ask_advice(data: SkincareQuery):
+    products = retriever.invoke(data.skin_concern)
+    result = chain.invoke({
+        "skin_concern": data.skin_concern,
+        "products_table": products,
+        "question": data.question,
+    })
+    return {"response": result}

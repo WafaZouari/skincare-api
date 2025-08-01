@@ -11,7 +11,7 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",  # your Next.js local dev URL
     # add your deployed frontend URL here as well, e.g.
-     "https://skincare-front.onrender.com/",
+     "https://skincare-front.onrender.com",
 ]
 
 app.add_middleware(

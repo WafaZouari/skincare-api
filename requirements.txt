@@ -2,11 +2,11 @@ fastapi
 uvicorn
 pandas
 openai
-langchain
 langchain-community
 langchain-core
 python-dotenv
 python-multipart
 aiohttp
 pydantic
-chroma-langchain
+langchain
+chromadb

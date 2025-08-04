@@ -1,71 +1,37 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableLambda
-from langchain_core.output_parsers import StrOutputParser
-from langchain_community.chat_models import ChatOpenAI
+from langchain.chains import RetrievalQA
+from langchain_community.llms import HuggingFaceHub  # or use OpenAI/Mistral etc.
 from vector import retriever
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = FastAPI()
 
-origins = [
-    "http://localhost:3000",
-    "https://skincare-front.onrender.com",
-]
-
+# ✅ Enable CORS (replace with your frontend domain if needed)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["https://skincare-front.onrender.com/"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-class SkincareQuery(BaseModel):
-    skin_concern: str
+# ✅ Define the request model
+class AskRequest(BaseModel):
     question: str
 
-# ✅ Use Together.ai or any other OpenAI-compatible API key for Mistral
-llm = ChatOpenAI(
-    base_url="https://api.together.xyz/v1",
-    api_key=os.getenv("TOGETHER_API_KEY"),  # store this in Railway secret
-    model="mistralai/Mistral-7B-Instruct-v0.2",
-    temperature=0.7
+# ✅ Choose an LLM (replace with your provider: OpenAI, Mistral, Groq, etc.)
+llm = HuggingFaceHub(
+    repo_id="tiiuae/falcon-7b-instruct",  # or "mistralai/Mistral-7B-Instruct-v0.1"
+    model_kwargs={"temperature": 0.7, "max_new_tokens": 512}
 )
 
-prompt = ChatPromptTemplate.from_template("""
-You are a skincare advisor who only recommends products available with delivery to Tunisia.
+# ✅ Build the RetrievalQA chain
+qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
 
-Skin concern: {skin_concern}
-
-Here are available products:
-Product Name | Target Concern(s) | Price (USD/TND) | Buy Link
-{products_table}
-
-Question from user: {question}
-
-Your task:
-- Recommend only relevant products available in Tunisia for the user's concern.
-- Provide prices (convert to TND if needed).
-- Propose a complete routine if useful (morning/evening).
-- Highlight the best price-quality ratio products.
-- Be clear, concise, and avoid recommending unavailable products.
-""")
-
-# Chain = prompt → llm → output parser
-chain = prompt | llm | StrOutputParser()
-
+# ✅ Define route
 @app.post("/ask")
-async def ask_advice(data: SkincareQuery):
-    products = retriever.invoke(data.skin_concern)
-    result = chain.invoke({
-        "skin_concern": data.skin_concern,
-        "products_table": products,
-        "question": data.question,
-    })
-    return {"response": result}
+async def ask_question(request: AskRequest):
+    response = qa_chain.run(request.question)
+    return {"response": response}

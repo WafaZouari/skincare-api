@@ -12,8 +12,9 @@ pydantic
 # LangChain core
 langchain
 langchain-core
-langchain-community
-
+#langchain-community
+langchain-huggingface
+langchain-chroma
 # Groq integration
 langchain-groq
 

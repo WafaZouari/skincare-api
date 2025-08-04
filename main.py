@@ -1,19 +1,18 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-from vector import retriever  # Make sure retriever still works
-
+from langchain_core.runnables import RunnableLambda
+from langchain_core.output_parsers import StrOutputParser
+from langchain_community.chat_models import ChatOpenAI
+from vector import retriever
 import os
+from dotenv import load_dotenv
 
-# Set your Groq API key (optional if using .env or Render secrets)
-os.environ["GROQ_API_KEY"] = "your-groq-api-key"  # Replace with your key or load from env
+load_dotenv()
 
-# Initialize FastAPI app
 app = FastAPI()
 
-# CORS configuration
 origins = [
     "http://localhost:3000",
     "https://skincare-front.onrender.com",
@@ -27,18 +26,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic model for incoming POST data
 class SkincareQuery(BaseModel):
     skin_concern: str
     question: str
 
-# Use Mistral-7B via Groq
-model = ChatGroq(
-   model_name="sentence-transformers/all-MiniLM-L6-v2",  # You can also try "mixtral-8x7b" for more power
+# ✅ Use Together.ai or any other OpenAI-compatible API key for Mistral
+llm = ChatOpenAI(
+    base_url="https://api.together.xyz/v1",
+    api_key=os.getenv("TOGETHER_API_KEY"),  # store this in Railway secret
+    model="mistralai/Mistral-7B-Instruct-v0.2",
     temperature=0.7
 )
 
-# Prompt setup
 prompt = ChatPromptTemplate.from_template("""
 You are a skincare advisor who only recommends products available with delivery to Tunisia.
 
@@ -58,22 +57,15 @@ Your task:
 - Be clear, concise, and avoid recommending unavailable products.
 """)
 
-# Chain the prompt with the model
-chain = prompt | model
+# Chain = prompt → llm → output parser
+chain = prompt | llm | StrOutputParser()
 
-# API endpoint
 @app.post("/ask")
 async def ask_advice(data: SkincareQuery):
-    # Use retriever to get relevant products
     products = retriever.invoke(data.skin_concern)
-
-    # Call the LLM with structured input
     result = chain.invoke({
         "skin_concern": data.skin_concern,
         "products_table": products,
         "question": data.question,
     })
-
     return {"response": result}
-
-#deploy on Render

@@ -75,3 +75,5 @@ async def ask_advice(data: SkincareQuery):
     })
 
     return {"response": result}
+
+#deploy on Render

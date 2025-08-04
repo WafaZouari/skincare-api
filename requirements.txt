@@ -1,11 +1,33 @@
+# Web framework
 fastapi
 uvicorn
+
+# CORS middleware
+python-multipart
+aiofiles
+httpx
+requests
 pydantic
+
+# LangChain core
 langchain
-langchain-community
 langchain-core
-langchain-chroma
+#langchain-community
 langchain-huggingface
+langchain-chroma
+# Groq integration
 langchain-groq
+
+# HuggingFace embeddings
+sentence-transformers
+
+# Vector DB
+chromadb
+faiss-cpu
+
+# Data processing
 pandas
-openpyxl
+openpyxl  # required for reading Excel files
+
+# Optional (for .env support)
+python-dotenv

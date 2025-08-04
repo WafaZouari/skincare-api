@@ -34,7 +34,7 @@ class SkincareQuery(BaseModel):
 
 # Use Mistral-7B via Groq
 model = ChatGroq(
-   model_name="sentence-transformers/all-MiniLM-L6-v2",  # You can also try "mixtral-8x7b" for more power
+    model_name="mistral-7b",  # You can also try "mixtral-8x7b" for more power
     temperature=0.7
 )
 
@@ -75,5 +75,3 @@ async def ask_advice(data: SkincareQuery):
     })
 
     return {"response": result}
-
-#deploy on Render

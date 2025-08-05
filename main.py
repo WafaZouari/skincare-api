@@ -1,18 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from langchain_mistralai.chat_models import ChatMistralAI
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_huggingface import HuggingFaceEndpoint
 from vector import retriever
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
 
 app = FastAPI()
 
-# Configure CORS - adjust these for production
+# CORS config
 origins = [
     "http://localhost:3000",
     "https://skincare-front.onrender.com",
-    # Add your production frontend URL here
 ]
 
 app.add_middleware(
@@ -27,14 +29,16 @@ class SkincareQuery(BaseModel):
     skin_concern: str
     question: str
 
-# Initialize Mistral - using environment variables for API key
-mistral_api_key = os.getenv("MISTRAL_API_KEY")
-model = ChatMistralAI(
-    model="mistral-large-latest",
-    mistral_api_key=mistral_api_key,
-    temperature=0.7
+# ✅ Using HuggingFace Inference API (Mistral model)
+model = HuggingFaceEndpoint(
+    repo_id="mistralai/Mistral-7B-Instruct-v0.1",
+    task="text-generation",
+    huggingfacehub_api_token=os.getenv("HUGGINGFACEHUB_API_TOKEN"),
+     temperature=0.7,
+    max_new_tokens=512
 )
 
+# Prompt
 prompt = ChatPromptTemplate.from_template("""
 You are a skincare advisor who only recommends products available with delivery to Tunisia.
 
@@ -52,7 +56,6 @@ Your task:
 - Propose a complete routine if useful (morning/evening).
 - Highlight the best price-quality ratio products.
 - Be clear, concise, and avoid recommending unavailable products.
-- Always include product links from the metadata.
 """)
 
 chain = prompt | model
@@ -65,8 +68,4 @@ async def ask_advice(data: SkincareQuery):
         "products_table": products,
         "question": data.question,
     })
-    return {"response": result.content}
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+    return {"response": result}

@@ -31,12 +31,12 @@ class SkincareQuery(BaseModel):
 
 # ✅ Using HuggingFace Inference API (Mistral model)
 model = HuggingFaceEndpoint(
-    repo_id="mistralai/Mistral-7B-Instruct-v0.1",
+    repo_id="tiiuae/falcon-rw-1b",  # small deployable model
     task="text-generation",
     huggingfacehub_api_token=os.getenv("HUGGINGFACEHUB_API_TOKEN"),
-     temperature=0.7,
-    max_new_tokens=512
+    model_kwargs={"temperature": 0.7, "max_new_tokens": 512}
 )
+
 
 # Prompt
 prompt = ChatPromptTemplate.from_template("""

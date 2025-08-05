@@ -9,3 +9,4 @@ langchain-chroma
 langchain-huggingface
 python-dotenv
 sentence-transformers
+

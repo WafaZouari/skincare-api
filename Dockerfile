@@ -1,19 +1,25 @@
-FROM python:3.11-slim
+FROM python:3.9-slim
 
-# Set work directory
 WORKDIR /app
 
-# Copy files
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application files
 COPY . .
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y build-essential
+# Create the chroma db directory if it doesn't exist
+RUN mkdir -p /app/chroma_langchain_db
 
-# Install Python dependencies globally
-RUN pip install chromadb langchain langchain-community fastapi uvicorn openpyxl sentence-transformers
-
-# Expose port
+# Expose the port the app runs on
 EXPOSE 8000
 
-# Run app
+# Command to run the application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
